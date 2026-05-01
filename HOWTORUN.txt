@@ -1,0 +1,9 @@
+HOW TO RUN THIS PROJECT
+========================
+1. Open VS Code
+2. Open Terminal
+3. cd C:\Users\sarod\OneDrive\Desktop\water_cleaning_sim
+4. .\venv\Scripts\Activate.ps1
+5. python dashboard.py     ← main app
+   python main.py          ← terminal mode
+   python train_yolo.py    ← only if retraining

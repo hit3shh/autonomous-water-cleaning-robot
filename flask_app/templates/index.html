@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Water Cleaning Robot Dashboard</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+
+  <!-- Chart.js for reward trend -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <!-- Our CSS -->
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       TOP NAVBAR
+  ═══════════════════════════════════════════════ -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <i class="fa-solid fa-water nav-icon"></i>
+      <span class="nav-title">Autonomous Water Surface Cleaning Simulation</span>
+    </div>
+    <div class="nav-right">
+      <span class="status-badge" id="status-badge">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">OFFLINE</span>
+      </span>
+      <span class="nav-time" id="nav-time"></span>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════
+       CONTROL BAR
+  ═══════════════════════════════════════════════ -->
+  <div class="control-bar">
+    <button class="btn btn-start" onclick="startSystem()">
+      <i class="fa-solid fa-play"></i> START
+    </button>
+    <button class="btn btn-stop" onclick="stopSystem()">
+      <i class="fa-solid fa-stop"></i> STOP
+    </button>
+    <button class="btn btn-reset" onclick="resetSystem()">
+      <i class="fa-solid fa-rotate"></i> RESET
+    </button>
+    <div class="fps-display">
+      <i class="fa-solid fa-gauge-high"></i>
+      <span id="fps-val">0</span> FPS
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       STAT CARDS ROW
+  ═══════════════════════════════════════════════ -->
+  <div class="stats-row">
+
+    <div class="stat-card blue">
+      <div class="stat-icon"><i class="fa-solid fa-shoe-prints"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Total Steps</div>
+        <div class="stat-value" id="stat-steps">0</div>
+      </div>
+    </div>
+
+    <div class="stat-card green">
+      <div class="stat-icon"><i class="fa-solid fa-trash"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Trash Collected</div>
+        <div class="stat-value" id="stat-trash">0</div>
+      </div>
+    </div>
+
+    <div class="stat-card amber">
+      <div class="stat-icon"><i class="fa-solid fa-star"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Total Reward</div>
+        <div class="stat-value" id="stat-reward">0.0</div>
+      </div>
+    </div>
+
+    <div class="stat-card coral">
+      <div class="stat-icon"><i class="fa-solid fa-eye"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Detected Now</div>
+        <div class="stat-value" id="stat-detected">0</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MAIN GRID
+  ═══════════════════════════════════════════════ -->
+  <div class="main-grid">
+
+    <!-- ── LEFT: Camera Feed ──────────────────────── -->
+    <div class="card camera-card">
+      <div class="card-header">
+        <i class="fa-solid fa-video"></i> Live Camera Feed
+        <span class="card-badge" id="cam-badge">IDLE</span>
+      </div>
+      <div class="camera-container">
+        <img id="video-feed"
+             src="/video_feed"
+             alt="Camera Feed"
+             class="video-stream"/>
+        <div class="camera-overlay" id="cam-overlay">
+          <i class="fa-solid fa-video-slash"></i>
+          <p>Press START to begin</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT COLUMN ───────────────────────────── -->
+    <div class="right-col">
+
+      <!-- RL Decision Panel -->
+      <div class="card action-card">
+        <div class="card-header">
+          <i class="fa-solid fa-robot"></i> RL Decision Panel
+        </div>
+        <div class="action-body">
+          <div class="action-display" id="action-display">
+            <div class="action-arrow" id="action-arrow">
+              <i class="fa-solid fa-circle-pause" id="action-icon"></i>
+            </div>
+            <div class="action-name" id="action-name">IDLE</div>
+          </div>
+          <div class="action-details">
+            <div class="detail-row">
+              <span class="detail-label">
+                <i class="fa-solid fa-location-dot"></i> Position
+              </span>
+              <span class="detail-val" id="detail-pos">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">
+                <i class="fa-solid fa-bolt"></i> Reward
+              </span>
+              <span class="detail-val" id="detail-reward">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">
+                <i class="fa-solid fa-hashtag"></i> Step
+              </span>
+              <span class="detail-val" id="detail-step">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detection Details -->
+      <div class="card detect-card">
+        <div class="card-header">
+          <i class="fa-solid fa-magnifying-glass"></i> Detection Details
+        </div>
+        <div class="detect-list" id="detect-list">
+          <div class="no-detect">
+            <i class="fa-solid fa-circle-info"></i>
+            No objects detected
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       BOTTOM GRID
+  ═══════════════════════════════════════════════ -->
+  <div class="bottom-grid">
+
+    <!-- Reward Trend Chart -->
+    <div class="card chart-card">
+      <div class="card-header">
+        <i class="fa-solid fa-chart-line"></i> Reward Trend
+      </div>
+      <div class="chart-container">
+        <canvas id="rewardChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Class Counts -->
+    <div class="card class-card">
+      <div class="card-header">
+        <i class="fa-solid fa-layer-group"></i> Class Statistics
+      </div>
+      <div class="class-list" id="class-list">
+        <div class="no-detect">
+          <i class="fa-solid fa-circle-info"></i>
+          No detections yet
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection History -->
+    <div class="card history-card">
+      <div class="card-header">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        Detection History
+        <span class="card-badge green-badge">LIVE</span>
+      </div>
+      <div class="history-container">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th><i class="fa-regular fa-clock"></i> Time</th>
+              <th><i class="fa-solid fa-box"></i> Object</th>
+              <th><i class="fa-solid fa-percent"></i> Conf</th>
+              <th><i class="fa-solid fa-robot"></i> Action</th>
+              <th><i class="fa-solid fa-star"></i> Reward</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr>
+              <td colspan="5" class="no-data">
+                No history yet — press START
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════════ -->
+  <footer class="footer">
+    <span>
+      <i class="fa-solid fa-microchip"></i>
+      YOLOv8 + Q-Learning | RTX 2050 GPU
+    </span>
+    <span>
+      Autonomous Water Surface Cleaning Simulation
+    </span>
+    <span>
+      <i class="fa-solid fa-circle" style="color:#52b788;font-size:8px"></i>
+      Python 3.10 | Flask | OpenCV
+    </span>
+  </footer>
+
+  <!-- Our JS -->
+  <script src="/static/js/dashboard.js"></script>
+
+</body>
+</html>
