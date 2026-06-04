@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Autonomous Water Surface Cleaning Robot — Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --w0: #020d1a; --w1: #041528; --w2: #071e35; --w3: #0a2640;
+  --accent:  #00c8ff; --accent2: #0077b6;
+  --green:   #00e676; --amber:  #ffb300; --red: #ff4757; --purple: #7c4dff;
+  --glass:   rgba(0,200,255,0.07); --glass2: rgba(0,200,255,0.13);
+  --border:  rgba(0,200,255,0.22); --border2: rgba(0,200,255,0.08);
+  --text:    #d0eeff; --muted: #5a8aaa;
+  --glow:    0 0 18px rgba(0,200,255,0.35);
+  --font-hud: 'Share Tech Mono', monospace;
+  --font-ui:  'Rajdhani', sans-serif;
+  --font-title: 'Orbitron', sans-serif;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--w0);
+  font-family: var(--font-ui);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ═══════════════ HEADER ═══════════════ */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: rgba(4,21,40,0.97);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+header::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  box-shadow: var(--glow);
+}
+.logo-text {
+  font-family: var(--font-title);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1.5px; color: var(--accent);
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(0,200,255,0.5);
+}
+.logo-sub { font-family: var(--font-hud); font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+
+.hdr-center {
+  display: flex; align-items: center; gap: 16px;
+}
+.badge {
+  font-family: var(--font-hud);
+  font-size: 10px; padding: 3px 10px;
+  border-radius: 4px; letter-spacing: 1px;
+  border: 1px solid;
+}
+.badge-blue  { color: var(--accent);  border-color: var(--accent);  background: rgba(0,200,255,0.08); }
+.badge-green { color: var(--green);   border-color: var(--green);   background: rgba(0,230,118,0.08); }
+.badge-amber { color: var(--amber);   border-color: var(--amber);   background: rgba(255,179,0,0.08); }
+
+.hdr-controls { display: flex; gap: 8px; }
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn {
+  padding: 7px 18px; border-radius: 6px;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.5px; cursor: pointer; transition: all .2s;
+  border: 1px solid var(--border);
+  background: var(--glass); color: var(--text);
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--glass2); }
+.btn.primary {
+  background: linear-gradient(135deg, #005f8a, var(--accent2));
+  border-color: var(--accent); color: #fff;
+  box-shadow: var(--glow);
+}
+.btn.primary:hover { box-shadow: 0 0 28px rgba(0,200,255,0.55); }
+.btn.stop { border-color: var(--red); color: var(--red); }
+.btn.stop:hover { background: rgba(255,71,87,0.1); }
+.btn:disabled { opacity:.35; cursor:not-allowed; }
+
+/* ═══════════════ LAYOUT ═══════════════ */
+.main { display:flex; flex:1; overflow:hidden; }
+
+/* Canvas */
+.canvas-wrap {
+  flex: 1; display:flex; align-items:center; justify-content:center;
+  padding: 12px; position: relative;
+  background: radial-gradient(ellipse at 50% 50%, #071e35 0%, #020d1a 100%);
+}
+canvas {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 0 50px rgba(0,80,120,0.45), inset 0 0 80px rgba(0,0,0,0.4);
+  display:block;
+  max-width:100%; max-height:100%;
+}
+
+/* Panel */
+.panel {
+  width: 270px;
+  background: rgba(4,21,40,0.97);
+  border-left: 1px solid var(--border);
+  display:flex; flex-direction:column;
+  overflow-y:auto; flex-shrink:0;
+}
+.panel::-webkit-scrollbar { width:4px; }
+.panel::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.2); border-radius:2px; }
+
+.psec {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border2);
+}
+.psec:last-child { border-bottom:none; }
+
+.ptitle {
+  font-family: var(--font-hud);
+  font-size: 9px; color: var(--accent);
+  letter-spacing: 2.5px; text-transform:uppercase;
+  margin-bottom: 11px;
+  display:flex; align-items:center; gap:6px;
+}
+.ptitle::after { content:''; flex:1; height:1px; background: linear-gradient(to right, var(--border), transparent); }
+
+/* Stat grid */
+.sgrid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.scard {
+  background: var(--glass);
+  border: 1px solid var(--border2);
+  border-radius: 8px; padding:9px; text-align:center;
+}
+.scard.wide { grid-column:1/-1; }
+.sval {
+  font-family: var(--font-hud);
+  font-size: 22px; font-weight:700;
+  color: var(--accent); line-height:1;
+}
+.sval.green { color: var(--green); }
+.sval.amber { color: var(--amber); }
+.sval.red   { color: var(--red); }
+.slbl { font-size:9px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; margin-top:3px; }
+
+/* Progress */
+.prog-row { margin-top:10px; }
+.prog-lbl { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:5px; }
+.prog-bar { height:5px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
+.prog-fill {
+  height:100%;
+  background: linear-gradient(to right, var(--accent2), var(--accent));
+  border-radius:3px; transition:width .5s ease;
+  box-shadow: 0 0 8px rgba(0,200,255,0.4);
+}
+
+/* Status rows */
+.srow {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 0; border-bottom:1px solid var(--border2);
+  font-size:12px;
+}
+.srow:last-child { border-bottom:none; }
+.sdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.sdot.blue   { background:var(--accent); box-shadow:0 0 6px var(--accent); animation:pulse 1.5s infinite; }
+.sdot.green  { background:var(--green);  box-shadow:0 0 6px var(--green);  animation:pulse 2s infinite; }
+.sdot.amber  { background:var(--amber);  box-shadow:0 0 6px var(--amber); }
+.sdot.gray   { background:#333; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.skey { color:var(--muted); flex:1; }
+.svl  { font-family:var(--font-hud); font-size:11px; color:var(--text); }
+
+/* Mode badge */
+.mode-badge {
+  display:inline-block; padding:2px 9px; border-radius:4px;
+  font-family:var(--font-hud); font-size:10px; font-weight:700;
+  letter-spacing:1px;
+}
+.mode-collect  { background:rgba(0,230,118,.15); color:var(--green);  border:1px solid var(--green); }
+.mode-navigate { background:rgba(0,200,255,.12); color:var(--accent); border:1px solid var(--accent); }
+.mode-search   { background:rgba(255,179,0,.12); color:var(--amber);  border:1px solid var(--amber); }
+.mode-idle     { background:rgba(90,138,170,.1); color:var(--muted);  border:1px solid var(--muted); }
+
+/* RL Q-table display */
+.qtable-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+}
+.qcell {
+  background: rgba(0,200,255,0.06);
+  border: 1px solid rgba(0,200,255,0.15);
+  border-radius: 4px;
+  padding: 5px 3px;
+  text-align: center;
+  font-family: var(--font-hud);
+  font-size: 9px;
+  color: var(--muted);
+  transition: all .3s;
+  position: relative;
+}
+.qcell.active {
+  background: rgba(0,200,255,0.22);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 8px rgba(0,200,255,0.3);
+}
+.qcell.target-cell {
+  background: rgba(0,230,118,0.2);
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 8px rgba(0,230,118,0.3);
+}
+.qcell-num { font-size: 8px; opacity:.6; }
+
+/* Detection list */
+.det-item {
+  display:flex; align-items:center; gap:7px;
+  padding:5px 0; border-bottom:1px solid var(--border2);
+  font-size:11px;
+}
+.det-item:last-child { border-bottom:none; }
+.det-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.det-name { flex:1; color:var(--text); }
+.det-conf {
+  font-family:var(--font-hud); font-size:10px;
+  padding:1px 6px; border-radius:3px;
+  background:rgba(0,230,118,.1); color:var(--green); border:1px solid rgba(0,230,118,.2);
+}
+.no-det { font-size:11px; color:var(--muted); text-align:center; padding:8px 0; }
+
+/* Log */
+.logbox {
+  background: rgba(0,0,0,.35);
+  border:1px solid var(--border2); border-radius:6px;
+  padding:7px; height:120px; overflow-y:auto;
+  font-family:var(--font-hud); font-size:9.5px;
+  color:var(--muted); line-height:1.7;
+}
+.logbox::-webkit-scrollbar { width:3px; }
+.logbox::-webkit-scrollbar-thumb { background:rgba(0,200,255,0.2); }
+.le       { color:var(--muted); }
+.le.info  { color:var(--accent); }
+.le.ok    { color:var(--green); }
+.le.warn  { color:var(--amber); }
+.le.rl    { color:var(--purple); }
+
+/* Legend */
+.leg-item { display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:11px;color:var(--muted); }
+.leg-dot  { width:11px;height:11px;border-radius:50%;flex-shrink:0; }
+
+/* Reward chart */
+.rchart {
+  height: 55px;
+  display: flex; align-items: flex-end;
+  gap: 2px; padding: 4px 0;
+}
+.rbar {
+  flex: 1; border-radius: 2px 2px 0 0;
+  min-height: 2px; transition: height .3s ease;
+}
+.rbar.pos { background: linear-gradient(to top, #005f8a, var(--green)); }
+.rbar.neg { background: linear-gradient(to top, #5c0011, var(--red)); }
+
+/* Overlay */
+.overlay {
+  position:absolute; inset:0; border-radius:10px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; z-index:5;
+  background: linear-gradient(135deg, rgba(2,13,26,0.92), rgba(4,21,40,0.88));
+  backdrop-filter: blur(2px);
+}
+.overlay.hidden { display:none; }
+.ov-title {
+  font-family:var(--font-title);
+  font-size:20px; font-weight:900;
+  color:var(--accent); letter-spacing:2px;
+  text-shadow: 0 0 20px rgba(0,200,255,0.6);
+  text-align:center;
+}
+.ov-sub { font-size:13px; color:var(--muted); text-align:center; max-width:400px; line-height:1.6; }
+.ov-badges { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+
+/* Done overlay */
+.done-overlay {
+  position:absolute; inset:0; border-radius:10px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; z-index:5;
+  background: rgba(0,10,20,0.88); backdrop-filter:blur(3px);
+}
+.done-overlay.hidden { display:none; }
+.done-title {
+  font-family:var(--font-title);
+  font-size:26px; color:var(--green);
+  text-shadow:0 0 24px rgba(0,230,118,0.6);
+}
+.done-text { font-size:14px; color:var(--text); text-align:center; }
+
+/* Config sliders */
+.cfg-row { margin-bottom:9px; }
+.cfg-lbl {
+  display:flex; justify-content:space-between;
+  font-size:11px; color:var(--muted); margin-bottom:4px;
+}
+.cfg-val { color:var(--accent); font-family:var(--font-hud); }
+input[type=range] {
+  width:100%; height:4px; appearance:none;
+  background:rgba(255,255,255,0.08); border-radius:2px; outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  appearance:none; width:13px; height:13px; border-radius:50%;
+  background:var(--accent); box-shadow:0 0 6px var(--accent);
+}
+
+/* Action arrow display */
+.action-display {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:8px 0;
+}
+.action-arrow {
+  width:56px; height:56px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; border:2px solid var(--border);
+  background: var(--glass); transition: all .3s;
+}
+.action-arrow.LEFT     { border-color:var(--accent); background:rgba(0,200,255,.12); color:var(--accent); box-shadow:0 0 12px rgba(0,200,255,.3); }
+.action-arrow.RIGHT    { border-color:var(--red);    background:rgba(255,71,87,.12); color:var(--red);    box-shadow:0 0 12px rgba(255,71,87,.3); }
+.action-arrow.FORWARD  { border-color:var(--green);  background:rgba(0,230,118,.12); color:var(--green);  box-shadow:0 0 12px rgba(0,230,118,.3); }
+.action-arrow.BACKWARD { border-color:var(--amber);  background:rgba(255,179,0,.12); color:var(--amber);  box-shadow:0 0 12px rgba(255,179,0,.3); }
+.action-arrow.COLLECT  { border-color:var(--purple); background:rgba(124,77,255,.12); color:var(--purple); box-shadow:0 0 12px rgba(124,77,255,.3); }
+.action-name {
+  font-family:var(--font-hud); font-size:13px; font-weight:700;
+  letter-spacing:2px;
+}
+.action-reward {
+  font-family:var(--font-hud); font-size:11px;
+}
+.action-reward.pos { color:var(--green); }
+.action-reward.neg { color:var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <div class="logo-text">Autonomous Water Cleaning Robot</div>
+      <div class="logo-sub">YOLOv8 + Q-Learning Simulation  |  SVIIT-SVVV 2026</div>
+    </div>
+  </div>
+  <div class="hdr-center">
+    <span class="badge badge-blue">YOLOv8n  72.5% mAP50</span>
+    <span class="badge badge-green">Q-Learning  ε=0.2</span>
+    <span class="badge badge-amber">RTX 2050  CUDA</span>
+  </div>
+  <div class="hdr-controls">
+    <button class="btn primary" id="btnStart">▶ START</button>
+    <button class="btn" id="btnPause" disabled>⏸ Pause</button>
+    <button class="btn stop" id="btnReset">↺ Reset</button>
+    <button class="btn" id="btnAddWaste">＋ Add Trash</button>
+  </div>
+</header>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+
+  <!-- Canvas -->
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="680" height="500"></canvas>
+
+    <!-- Start overlay -->
+    <div class="overlay" id="overlay">
+      <div class="ov-title">🌊 WATER SURFACE CLEANING SIMULATION</div>
+      <div class="ov-sub">YOLOv8 detects floating trash in real-time. Q-Learning agent navigates autonomously and collects all waste items. Watch the robot learn and improve.</div>
+      <div class="ov-badges">
+        <span class="badge badge-blue">8 Trash Classes</span>
+        <span class="badge badge-green">3×3 Grid States</span>
+        <span class="badge badge-amber">5 RL Actions</span>
+        <span class="badge badge-blue">Reward-Based Learning</span>
+      </div>
+      <button class="btn primary" onclick="startSim()" style="padding:10px 32px;font-size:15px;">▶ START SIMULATION</button>
+    </div>
+
+    <!-- Done overlay -->
+    <div class="done-overlay hidden" id="doneOverlay">
+      <div class="done-title">🏁 MISSION COMPLETE!</div>
+      <div class="done-text" id="doneText"></div>
+      <button class="btn primary" onclick="resetSim()" style="margin-top:8px;">↺ Run Again</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SIDE PANEL ═══════════ -->
+  <div class="panel">
+
+    <!-- STATS -->
+    <div class="psec">
+      <div class="ptitle">Mission Stats</div>
+      <div class="sgrid">
+        <div class="scard success">
+          <div class="sval green" id="statCollected">0</div>
+          <div class="slbl">Collected</div>
+        </div>
+        <div class="scard">
+          <div class="sval amber" id="statRemaining">0</div>
+          <div class="slbl">Remaining</div>
+        </div>
+        <div class="scard">
+          <div class="sval" id="statReward">0</div>
+          <div class="slbl">Total Reward</div>
+        </div>
+        <div class="scard">
+          <div class="sval" id="statStep">0</div>
+          <div class="slbl">RL Steps</div>
+        </div>
+        <div class="scard wide">
+          <div class="sval" id="statCoverage">0%</div>
+          <div class="slbl">Area Coverage</div>
+        </div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-lbl"><span>Collection Progress</span><span id="progressPct">0%</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- RL DECISION -->
+    <div class="psec">
+      <div class="ptitle">RL Decision Panel</div>
+      <div class="action-display">
+        <div class="action-arrow" id="actionArrow">💤</div>
+        <div class="action-name" id="actionName" style="color:var(--muted)">IDLE</div>
+        <div class="action-reward" id="actionReward" style="color:var(--muted)">—</div>
+      </div>
+      <div class="srow">
+        <div class="sdot gray" id="dotStatus"></div>
+        <span class="skey">Mode</span>
+        <span class="svl"><span class="mode-badge mode-idle" id="modeLabel">IDLE</span></span>
+      </div>
+      <div class="srow">
+        <div class="sdot gray"></div>
+        <span class="skey">Grid State</span>
+        <span class="svl" id="gridState">—</span>
+      </div>
+      <div class="srow">
+        <div class="sdot gray"></div>
+        <span class="skey">Position</span>
+        <span class="svl" id="posXY">—</span>
+      </div>
+    </div>
+
+    <!-- Q-LEARNING GRID -->
+    <div class="psec">
+      <div class="ptitle">Q-Learning Grid (3×3)</div>
+      <div class="qtable-wrap" id="qtableGrid">
+        <!-- filled by JS -->
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:6px;font-family:var(--font-hud);">
+        CYAN = robot position &nbsp;|&nbsp; GREEN = trash target
+      </div>
+    </div>
+
+    <!-- YOLO DETECTIONS -->
+    <div class="psec">
+      <div class="ptitle">YOLOv8 Detections</div>
+      <div id="detList"><div class="no-det">No objects detected</div></div>
+    </div>
+
+    <!-- REWARD TREND -->
+    <div class="psec">
+      <div class="ptitle">Reward Trend</div>
+      <div class="rchart" id="rchart"></div>
+    </div>
+
+    <!-- ROBOT STATUS -->
+    <div class="psec">
+      <div class="ptitle">Robot Status</div>
+      <div class="srow">
+        <div class="sdot blue" id="sensorDot"></div>
+        <span class="skey">Detection Range</span>
+        <span class="svl" id="sensorVal">—</span>
+      </div>
+      <div class="srow">
+        <div class="sdot blue"></div>
+        <span class="skey">Speed</span>
+        <span class="svl" id="statSpeed">—</span>
+      </div>
+      <div class="srow">
+        <div class="sdot blue"></div>
+        <span class="skey">Heading</span>
+        <span class="svl" id="heading">—</span>
+      </div>
+      <div class="srow">
+        <div class="sdot blue"></div>
+        <span class="skey">Elapsed Time</span>
+        <span class="svl" id="statTime">0:00</span>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="psec">
+      <div class="ptitle">Object Classes</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Plastic Bottle</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>Leaf / Grass</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div>Plastic Bag</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#38bdf8"></div>Milk Box</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#fb7185"></div>Branch / Debris</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#facc15"></div>Ball</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="psec">
+      <div class="ptitle">Simulation Config</div>
+      <div class="cfg-row">
+        <div class="cfg-lbl"><span>Trash Objects</span><span class="cfg-val" id="cfgWaste">12</span></div>
+        <input type="range" id="slWaste" min="6" max="24" value="12" oninput="document.getElementById('cfgWaste').textContent=this.value"/>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-lbl"><span>Robot Speed</span><span class="cfg-val" id="cfgSpeed">2.5</span></div>
+        <input type="range" id="slSpeed" min="1" max="5" step="0.5" value="2.5" oninput="document.getElementById('cfgSpeed').textContent=this.value"/>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-lbl"><span>Sensor Range</span><span class="cfg-val" id="cfgSensor">90</span>px</div>
+        <input type="range" id="slSensor" min="50" max="160" step="10" value="90" oninput="document.getElementById('cfgSensor').textContent=this.value"/>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="psec">
+      <div class="ptitle">System Log</div>
+      <div class="logbox" id="logBox"></div>
+    </div>
+
+  </div><!-- /panel -->
+</div><!-- /main -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  GLOBALS
+// ══════════════════════════════════════════════════════════════
+const canvas   = document.getElementById('canvas');
+const ctx      = canvas.getContext('2d');
+let sim, running=false, paused=false, animId, startTime=null;
+let rewardHistory = [];
+let logCount = 0;
+
+// ══════════════════════════════════════════════════════════════
+//  TRASH CLASSES  (matching our actual YOLOv8 training classes)
+// ══════════════════════════════════════════════════════════════
+const TRASH_CLASSES = [
+  { name:'bottle',          color:'#f97316', size:10 },
+  { name:'leaf',            color:'#22c55e', size:8  },
+  { name:'plastic-bag',     color:'#a78bfa', size:12 },
+  { name:'milk-box',        color:'#38bdf8', size:11 },
+  { name:'branch',          color:'#fb7185', size:14 },
+  { name:'ball',            color:'#facc15', size:9  },
+  { name:'plastic-garbage', color:'#f472b6', size:13 },
+  { name:'grass',           color:'#4ade80', size:7  },
+];
+
+// Q-Learning state labels
+const STATE_LABELS = [
+  'Top-Left','Top-Center','Top-Right',
+  'Mid-Left','CENTER','Mid-Right',
+  'Bot-Left','Bot-Center','Bot-Right',
+  'No Trash'
+];
+
+// Action definitions
+const ACTIONS = ['LEFT','RIGHT','FORWARD','BACKWARD','COLLECT'];
+const ACTION_ICONS = { LEFT:'←', RIGHT:'→', FORWARD:'↑', BACKWARD:'↓', COLLECT:'⬡' };
+const ACTION_REWARD = {
+  COLLECT_CENTER: +10, COLLECT_OTHER: -5,
+  TOWARD: +3, AWAY: -1, NO_TRASH: 0
+};
+
+// ══════════════════════════════════════════════════════════════
+//  WATER BACKGROUND
+// ══════════════════════════════════════════════════════════════
+class Water {
+  constructor(W,H) {
+    this.W=W; this.H=H;
+    this.waves=[];
+    for(let i=0;i<6;i++) this.waves.push({
+      y: H*0.1+Math.random()*H*0.8,
+      amp: 4+Math.random()*8, freq: 0.005+Math.random()*0.01,
+      speed: 0.3+Math.random()*0.4, phase: Math.random()*Math.PI*2,
+      alpha: 0.04+Math.random()*0.06
+    });
+    this.t=0;
+  }
+  draw(c) {
+    this.t+=0.016;
+    // Base gradient
+    const g=c.createLinearGradient(0,0,0,this.H);
+    g.addColorStop(0,'#041528'); g.addColorStop(0.5,'#071e35'); g.addColorStop(1,'#030e1e');
+    c.fillStyle=g; c.fillRect(0,0,this.W,this.H);
+    // Shimmer dots
+    if(Math.random()<0.08){
+      c.save();
+      c.fillStyle=`rgba(0,200,255,${Math.random()*0.08})`;
+      c.beginPath();
+      c.arc(Math.random()*this.W,Math.random()*this.H,Math.random()*2,0,Math.PI*2);
+      c.fill(); c.restore();
+    }
+    // Waves
+    for(const w of this.waves){
+      c.save(); c.beginPath();
+      c.moveTo(0,w.y);
+      for(let x=0;x<=this.W;x+=4){
+        const y=w.y+Math.sin(x*w.freq+this.t*w.speed+w.phase)*w.amp;
+        c.lineTo(x,y);
+      }
+      c.strokeStyle=`rgba(0,200,255,${w.alpha})`;
+      c.lineWidth=1; c.stroke(); c.restore();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WASTE ITEM
+// ══════════════════════════════════════════════════════════════
+class WasteItem {
+  constructor(x,y,type) {
+    this.x=x; this.y=y; this.type=type;
+    this.collected=false;
+    this.confScore = (0.4+Math.random()*0.55).toFixed(2);
+    this.bobAmp   = 1+Math.random()*2;
+    this.bobSpeed = 0.5+Math.random()*1;
+    this.bobPhase = Math.random()*Math.PI*2;
+    this.t=0;
+    this.glowAlpha=0;
+    // Bounding box size for YOLO display
+    this.bboxW = type.size*3.2 + Math.random()*10;
+    this.bboxH = type.size*3.0 + Math.random()*8;
+  }
+  update() { this.t+=0.016; }
+  draw(c,showYOLO=true) {
+    if(this.collected) return;
+    this.update();
+    const bx = this.x;
+    const by = this.y + Math.sin(this.t*this.bobSpeed+this.bobPhase)*this.bobAmp;
+    const s  = this.type.size;
+
+    // YOLO bounding box
+    if(showYOLO) {
+      const bw=this.bboxW, bh=this.bboxH;
+      const bx1=bx-bw/2, by1=by-bh/2;
+      c.save();
+      c.strokeStyle=this.type.color;
+      c.lineWidth=1.5;
+      c.globalAlpha=0.75;
+      c.strokeRect(bx1,by1,bw,bh);
+      // Corner markers (YOLO style)
+      const cs=6;
+      c.lineWidth=2; c.globalAlpha=1;
+      const corners=[[bx1,by1],[bx1+bw,by1],[bx1,by1+bh],[bx1+bw,by1+bh]];
+      for(const [cx,cy] of corners){
+        const dx=cx===bx1?1:-1, dy=cy===by1?1:-1;
+        c.beginPath(); c.moveTo(cx,cy+dy*cs); c.lineTo(cx,cy); c.lineTo(cx+dx*cs,cy);
+        c.strokeStyle=this.type.color; c.stroke();
+      }
+      // Label
+      const label=`${this.type.name} ${(this.confScore*100).toFixed(0)}%`;
+      c.font='bold 9px "Share Tech Mono"';
+      const tw=c.measureText(label).width;
+      c.fillStyle=this.type.color; c.globalAlpha=0.85;
+      c.fillRect(bx1, by1-15, tw+8, 14);
+      c.globalAlpha=1;
+      c.fillStyle='#000';
+      c.fillText(label, bx1+4, by1-4);
+      c.restore();
+    }
+
+    // Object itself
+    c.save();
+    c.beginPath();
+    c.arc(bx, by, s, 0, Math.PI*2);
+    const rg=c.createRadialGradient(bx,by,0,bx,by,s);
+    rg.addColorStop(0,'rgba(255,255,255,0.25)');
+    rg.addColorStop(0.6,this.type.color);
+    rg.addColorStop(1,'rgba(0,0,0,0.3)');
+    c.fillStyle=rg;
+    c.shadowBlur=8; c.shadowColor=this.type.color;
+    c.fill();
+    c.restore();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ROBOT
+// ══════════════════════════════════════════════════════════════
+class Robot {
+  constructor(x,y) {
+    this.x=x; this.y=y; this.angle=0;
+    this.speed=parseFloat(document.getElementById('slSpeed').value);
+    this.sensorRange=parseInt(document.getElementById('slSensor').value);
+    this.mode='NAVIGATE';
+    this.target=null;
+    this.trail=[];
+    this.covered=new Set();
+    this.gridSpacing=30;
+    this.t=0;
+    this.thrusterPhase=0;
+    this.lastAction='IDLE';
+    this.lastReward=0;
+  }
+  steer(tx,ty){
+    const dx=tx-this.x, dy=ty-this.y;
+    this.angle=Math.atan2(dy,dx);
+    const d=Math.hypot(dx,dy);
+    const spd=Math.min(this.speed, d);
+    this.x+=Math.cos(this.angle)*spd;
+    this.y+=Math.sin(this.angle)*spd;
+    this.t+=0.05;
+    this.thrusterPhase+=0.3;
+    this.trail.push({x:this.x, y:this.y, a:0.6});
+    if(this.trail.length>80) this.trail.shift();
+  }
+  atTarget(t,thr=6){ return t&&Math.hypot(t.x-this.x,t.y-this.y)<thr; }
+  clamp(W,H,pad=18){ this.x=Math.max(pad,Math.min(W-pad,this.x)); this.y=Math.max(pad,Math.min(H-pad,this.y)); }
+  coveragePct(){
+    const gx=Math.floor(this.x/this.gridSpacing), gy=Math.floor(this.y/this.gridSpacing);
+    this.covered.add(`${gx},${gy}`);
+    const total=Math.ceil(canvas.width/this.gridSpacing)*Math.ceil(canvas.height/this.gridSpacing);
+    return Math.min(100,Math.round(this.covered.size/total*100));
+  }
+
+  // Get Q-Learning grid state from trash position
+  getGridState(trash, W, H) {
+    if(!trash) return 9; // no trash state
+    const col = Math.min(2, Math.floor(trash.x / W * 3));
+    const row = Math.min(2, Math.floor(trash.y / H * 3));
+    return row * 3 + col;
+  }
+
+  draw(c){
+    this.t+=0.016;
+    const x=this.x, y=this.y, a=this.angle;
+
+    // Trail
+    for(let i=0;i<this.trail.length;i++){
+      const t=this.trail[i];
+      t.a-=0.007;
+      if(t.a<=0) continue;
+      c.save();
+      c.beginPath(); c.arc(t.x,t.y,2,0,Math.PI*2);
+      c.fillStyle=`rgba(0,200,255,${t.a*0.5})`; c.fill(); c.restore();
+    }
+
+    // Sensor ring
+    c.save();
+    c.beginPath(); c.arc(x,y,this.sensorRange,0,Math.PI*2);
+    const srg=c.createRadialGradient(x,y,this.sensorRange*0.7,x,y,this.sensorRange);
+    srg.addColorStop(0,'transparent');
+    srg.addColorStop(1,'rgba(0,200,255,0.06)');
+    c.fillStyle=srg; c.fill();
+    c.strokeStyle='rgba(0,200,255,0.12)';
+    c.lineWidth=1; c.setLineDash([3,6]); c.stroke(); c.setLineDash([]);
+    c.restore();
+
+    // Target line
+    if(this.target){
+      c.save();
+      c.beginPath(); c.moveTo(x,y); c.lineTo(this.target.x,this.target.y);
+      c.strokeStyle='rgba(0,230,118,0.3)'; c.lineWidth=1;
+      c.setLineDash([4,5]); c.stroke(); c.setLineDash([]);
+      c.restore();
+    }
+
+    // Thruster blasts
+    const thruster_positions=[
+      {dx:-14*Math.cos(a)+5*Math.sin(a), dy:-14*Math.sin(a)-5*Math.cos(a)},
+      {dx:-14*Math.cos(a)-5*Math.sin(a), dy:-14*Math.sin(a)+5*Math.cos(a)},
+    ];
+    for(const tp of thruster_positions){
+      c.save();
+      const tx2=x+tp.dx, ty2=y+tp.dy;
+      const bl=4+Math.abs(Math.sin(this.thrusterPhase))*5;
+      const tg=c.createRadialGradient(tx2,ty2,0,tx2,ty2,bl*1.5);
+      tg.addColorStop(0,'rgba(0,200,255,0.8)');
+      tg.addColorStop(0.5,'rgba(0,119,182,0.4)');
+      tg.addColorStop(1,'transparent');
+      c.fillStyle=tg; c.beginPath(); c.arc(tx2,ty2,bl*1.5,0,Math.PI*2); c.fill();
+      c.restore();
+    }
+
+    // Robot body
+    c.save();
+    c.translate(x,y); c.rotate(a);
+    // Hull
+    c.beginPath();
+    c.moveTo(16,0); c.lineTo(8,8); c.lineTo(-14,7); c.lineTo(-14,-7); c.lineTo(8,-8); c.closePath();
+    const bg=c.createLinearGradient(-14,0,16,0);
+    bg.addColorStop(0,'#1a4a6b'); bg.addColorStop(0.5,'#d0eeff'); bg.addColorStop(1,'#a0c8e0');
+    c.fillStyle=bg;
+    c.shadowBlur=14; c.shadowColor='rgba(0,200,255,0.55)';
+    c.fill();
+    c.strokeStyle='rgba(0,200,255,0.7)'; c.lineWidth=1.2; c.stroke();
+    // Collection arm
+    c.beginPath(); c.moveTo(10,-3); c.lineTo(20,-3); c.lineTo(20,3); c.lineTo(10,3);
+    c.fillStyle=this.mode==='COLLECT'?'rgba(0,230,118,0.8)':'rgba(0,200,255,0.5)';
+    c.fill();
+    // Sensors
+    c.beginPath(); c.arc(8,0,3,0,Math.PI*2);
+    c.fillStyle='#00c8ff';
+    c.shadowBlur=10; c.shadowColor='#00c8ff'; c.fill();
+    // Mode light
+    c.beginPath(); c.arc(-4,0,4,0,Math.PI*2);
+    const mc=this.mode==='COLLECT'?'#00e676':this.mode==='AVOID'?'#ffb300':'#00c8ff';
+    c.fillStyle=mc; c.shadowBlur=12; c.shadowColor=mc; c.fill();
+    c.restore();
+
+    // Mode label above robot
+    c.save();
+    c.font='bold 9px "Share Tech Mono"';
+    const ml=this.mode==='COLLECT'?'COLLECT':this.mode==='NAVIGATE'?'NAVIGATE':'SCAN';
+    const mlw=c.measureText(ml).width;
+    const mc2=this.mode==='COLLECT'?'rgba(0,230,118,0.8)':'rgba(0,200,255,0.7)';
+    c.fillStyle=mc2;
+    c.fillText(ml, x-mlw/2, y-24);
+    c.restore();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Q-TABLE  (simple Q-Learning agent)
+// ══════════════════════════════════════════════════════════════
+class QAgent {
+  constructor() {
+    this.alpha   = 0.1;
+    this.gamma   = 0.9;
+    this.epsilon = 0.2;
+    this.q = Array.from({length:10}, ()=>Array(5).fill(0));
+    this.prevState  = null;
+    this.prevAction = null;
+    this.totalReward = 0;
+    this.steps = 0;
+  }
+  chooseAction(state) {
+    if(Math.random()<this.epsilon) return Math.floor(Math.random()*5);
+    let best=0, bestV=-Infinity;
+    for(let a=0;a<5;a++) if(this.q[state][a]>bestV){ bestV=this.q[state][a]; best=a; }
+    return best;
+  }
+  update(s,a,r,ns) {
+    const curr=this.q[s][a];
+    const maxNext=Math.max(...this.q[ns]);
+    this.q[s][a]=curr+this.alpha*(r+this.gamma*maxNext-curr);
+    this.totalReward+=r; this.steps++;
+  }
+  getReward(state,actionIdx,nearestTrash) {
+    const action=ACTIONS[actionIdx];
+    if(state===9) return ACTION_REWARD.NO_TRASH;
+    if(action==='COLLECT'){
+      return state===4 ? ACTION_REWARD.COLLECT_CENTER : ACTION_REWARD.COLLECT_OTHER;
+    }
+    // Movement reward
+    const col=state%3, row=Math.floor(state/3);
+    if(action==='LEFT'    && col>1) return ACTION_REWARD.TOWARD;
+    if(action==='RIGHT'   && col<1) return ACTION_REWARD.TOWARD;
+    if(action==='FORWARD' && row>1) return ACTION_REWARD.TOWARD;
+    if(action==='BACKWARD'&& row<1) return ACTION_REWARD.TOWARD;
+    return ACTION_REWARD.AWAY;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SIMULATION
+// ══════════════════════════════════════════════════════════════
+class Simulation {
+  constructor() {
+    this.W=canvas.width; this.H=canvas.height;
+    this.water=new Water(this.W,this.H);
+    this.agent=new QAgent();
+
+    // Create waste
+    this.waste=[];
+    const n=parseInt(document.getElementById('slWaste').value);
+    for(let i=0;i<n;i++) this._spawnWaste();
+    this.totalWaste=this.waste.length;
+    this.collected=0;
+
+    // Create robot
+    this.robot=new Robot(this.W/2, this.H/2);
+    this.robot.speed=parseFloat(document.getElementById('slSpeed').value);
+    this.robot.sensorRange=parseInt(document.getElementById('slSensor').value);
+
+    // Grid patrol path
+    this.gridPath=this._buildGrid();
+    this.gridIdx=0;
+    this.collectFX=[];
+    this.scanFX=[];
+
+    // Frame counter for RL stepping
+    this.frame=0;
+    this.currentRL={action:'IDLE',state:9,reward:0};
+  }
+
+  _spawnWaste() {
+    const pad=30;
+    let x,y,ok;
+    for(let t=0;t<50;t++){
+      x=pad+Math.random()*(this.W-2*pad);
+      y=pad+Math.random()*(this.H-2*pad);
+      ok=true;
+      for(const w of this.waste) if(Math.hypot(w.x-x,w.y-y)<30){ok=false;break;}
+      if(ok) break;
+    }
+    const type=TRASH_CLASSES[Math.floor(Math.random()*TRASH_CLASSES.length)];
+    this.waste.push(new WasteItem(x,y,type));
+  }
+
+  addWaste() {
+    this._spawnWaste();
+    this.totalWaste=this.waste.length;
+  }
+
+  _buildGrid() {
+    const sp=60, pad=40, pts=[];
+    let dir=1;
+    for(let y=pad;y<=this.H-pad;y+=sp){
+      const row=[];
+      for(let x=pad;x<=this.W-pad;x+=sp) row.push({x,y});
+      if(dir===-1) row.reverse();
+      pts.push(...row); dir*=-1;
+    }
+    return pts;
+  }
+
+  // Find nearest uncollected waste in range
+  _nearestInRange() {
+    let best=null, bestD=Infinity;
+    for(const w of this.waste){
+      if(w.collected) continue;
+      const d=Math.hypot(w.x-this.robot.x, w.y-this.robot.y);
+      if(d<this.robot.sensorRange && d<bestD){ bestD=d; best=w; }
+    }
+    return best;
+  }
+
+  update() {
+    this.frame++;
+    const r=this.robot;
+    const nearest=this._nearestInRange();
+
+    // ── Q-LEARNING DECISION (every 5 frames for visibility) ──
+    if(this.frame%5===0){
+      const state = r.getGridState(nearest, this.W, this.H);
+      const actionIdx = this.agent.chooseAction(state);
+      const action = ACTIONS[actionIdx];
+      const reward = this.agent.getReward(state, actionIdx, nearest);
+
+      // Update Q-table with previous step
+      if(this.agent.prevState!==null){
+        this.agent.update(this.agent.prevState, this.agent.prevAction, reward, state);
+      }
+      this.agent.prevState=state;
+      this.agent.prevAction=actionIdx;
+      r.lastAction=action;
+      r.lastReward=reward;
+      this.currentRL={action,state,reward,actionIdx};
+
+      // Log significant events
+      if(reward===10) addLog(`⬡ COLLECT +10 | state: CENTER`,'ok');
+      else if(reward===3 && Math.random()<0.3) addLog(`↗ ${action} +3 → toward trash`,'rl');
+      else if(reward===-5) addLog(`✗ COLLECT -5 | not at center`,'warn');
+    }
+
+    // ── NAVIGATION ──
+    if(nearest){
+      r.mode='COLLECT';
+      r.target={x:nearest.x, y:nearest.y};
+      r.steer(nearest.x, nearest.y);
+
+      if(r.atTarget(r.target,8)){
+        nearest.collected=true;
+        this.collected++;
+        this.collectFX.push({x:nearest.x, y:nearest.y, r:8, alpha:1});
+        addLog(`✓ ${nearest.type.name} collected  conf:${nearest.confScore}`,'ok');
+        r.mode='NAVIGATE'; r.target=null;
+      }
+    } else {
+      r.mode='NAVIGATE';
+      if(this.gridIdx<this.gridPath.length){
+        const wp=this.gridPath[this.gridIdx];
+        r.steer(wp.x,wp.y);
+        if(r.atTarget(wp,8)) this.gridIdx++;
+      } else {
+        this.gridIdx=0;
+      }
+    }
+
+    r.clamp(this.W,this.H);
+
+    // Fade effects
+    this.collectFX=this.collectFX.filter(f=>f.alpha>0);
+    for(const f of this.collectFX){ f.r+=2.5; f.alpha-=0.04; }
+  }
+
+  draw() {
+    ctx.clearRect(0,0,this.W,this.H);
+    this.water.draw(ctx);
+
+    // Boundary dashes
+    ctx.save();
+    ctx.beginPath(); ctx.rect(6,6,this.W-12,this.H-12);
+    ctx.strokeStyle='rgba(0,200,255,0.2)'; ctx.lineWidth=1.5;
+    ctx.setLineDash([8,6]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+
+    // Corner GPS markers
+    for(const [cx,cy] of [[18,18],[this.W-18,18],[18,this.H-18],[this.W-18,this.H-18]]){
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,200,255,0.4)'; ctx.fill();
+      // Cross
+      ctx.strokeStyle='rgba(0,200,255,0.3)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(cx-8,cy); ctx.lineTo(cx+8,cy); ctx.moveTo(cx,cy-8); ctx.lineTo(cx,cy+8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Grid patrol path (faint)
+    if(this.gridPath.length>1){
+      ctx.save(); ctx.beginPath();
+      ctx.moveTo(this.gridPath[0].x,this.gridPath[0].y);
+      for(let i=1;i<this.gridPath.length;i++) ctx.lineTo(this.gridPath[i].x,this.gridPath[i].y);
+      ctx.strokeStyle='rgba(0,200,255,0.05)'; ctx.lineWidth=1;
+      ctx.setLineDash([3,8]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // 3×3 grid overlay (subtle)
+    ctx.save();
+    ctx.strokeStyle='rgba(0,200,255,0.06)'; ctx.lineWidth=0.5;
+    for(let i=1;i<3;i++){
+      const x=this.W/3*i, y=this.H/3*i;
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,this.H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(this.W,y); ctx.stroke();
+    }
+    // Grid state labels
+    ctx.font='9px "Share Tech Mono"'; ctx.fillStyle='rgba(0,200,255,0.12)';
+    const labels=['TL','TC','TR','ML','C','MR','BL','BC','BR'];
+    for(let i=0;i<9;i++){
+      const col=i%3, row=Math.floor(i/3);
+      ctx.fillText(labels[i], this.W/3*col+8, this.H/3*row+16);
+    }
+    ctx.restore();
+
+    // Waste items
+    for(const w of this.waste) w.draw(ctx,true);
+
+    // Robot
+    this.robot.draw(ctx);
+
+    // Collect flash effects
+    for(const f of this.collectFX){
+      ctx.save();
+      // Expanding ring
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(0,230,118,${f.alpha})`;
+      ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r*0.5,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(0,200,255,${f.alpha*0.6})`;
+      ctx.lineWidth=1.5; ctx.stroke();
+      // "+10" text
+      if(f.alpha>0.5){
+        ctx.font=`bold ${12}px "Share Tech Mono"`;
+        ctx.fillStyle=`rgba(0,230,118,${(f.alpha-0.5)*2})`;
+        ctx.fillText('+10', f.x+f.r*0.4, f.y-f.r*0.4);
+      }
+      ctx.restore();
+    }
+
+    // Draw RL state box on canvas
+    this._drawRLBox();
+  }
+
+  _drawRLBox() {
+    const rl=this.currentRL;
+    const bx=10, by=this.H-70, bw=200, bh=60;
+    ctx.save();
+    ctx.fillStyle='rgba(4,21,40,0.85)';
+    ctx.strokeStyle='rgba(0,200,255,0.25)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.roundRect(bx,by,bw,bh,6);
+    ctx.fill(); ctx.stroke();
+    // Text
+    ctx.font='bold 10px "Share Tech Mono"';
+    ctx.fillStyle='rgba(0,200,255,0.7)';
+    ctx.fillText('Q-LEARNING AGENT', bx+8, by+15);
+    ctx.font='10px "Share Tech Mono"';
+    ctx.fillStyle='#d0eeff';
+    ctx.fillText(`State: ${STATE_LABELS[rl.state]||'—'}`, bx+8, by+30);
+    const actionColor = rl.action==='COLLECT'?'#7c4dff':rl.action==='FORWARD'?'#00e676':rl.action==='BACKWARD'?'#ffb300':rl.action==='LEFT'?'#00c8ff':'#ff4757';
+    ctx.fillStyle=actionColor;
+    ctx.fillText(`Action: ${rl.action||'—'}`, bx+8, by+44);
+    const rc=rl.reward>0?'#00e676':rl.reward<0?'#ff4757':'#5a8aaa';
+    ctx.fillStyle=rc;
+    ctx.fillText(`Reward: ${rl.reward!==undefined?(rl.reward>0?'+':'')+rl.reward:'—'}`, bx+110, by+44);
+    ctx.restore();
+  }
+
+  updateHUD(elapsed) {
+    const r=this.robot;
+    const remaining=this.waste.filter(w=>!w.collected).length;
+
+    document.getElementById('statCollected').textContent=this.collected;
+    document.getElementById('statRemaining').textContent=remaining;
+    document.getElementById('statReward').textContent=Math.round(this.agent.totalReward);
+    document.getElementById('statStep').textContent=this.agent.steps;
+
+    const s=Math.floor(elapsed/1000);
+    document.getElementById('statTime').textContent=Math.floor(s/60)+':'+(s%60+'').padStart(2,'0');
+
+    const pct=this.totalWaste>0?Math.round(this.collected/this.totalWaste*100):0;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressPct').textContent=pct+'%';
+
+    document.getElementById('statCoverage').textContent=r.coveragePct()+'%';
+    document.getElementById('posXY').textContent=`${Math.round(r.x)},${Math.round(r.y)}`;
+    document.getElementById('heading').textContent=Math.round((r.angle*180/Math.PI+360)%360)+'°';
+    document.getElementById('statSpeed').textContent=r.speed.toFixed(1)+' px/f';
+    document.getElementById('sensorVal').textContent=r.sensorRange+'px';
+
+    // Mode badge
+    const ml=document.getElementById('modeLabel');
+    const dt=document.getElementById('dotStatus');
+    if(r.mode==='COLLECT'){
+      ml.className='mode-badge mode-collect'; ml.textContent='COLLECT';
+      dt.className='sdot green';
+    } else {
+      ml.className='mode-badge mode-navigate'; ml.textContent='NAVIGATE';
+      dt.className='sdot blue';
+    }
+
+    // RL action display
+    const rl=this.currentRL;
+    const arrowEl=document.getElementById('actionArrow');
+    const nameEl=document.getElementById('actionName');
+    const rewEl=document.getElementById('actionReward');
+
+    if(rl.action&&rl.action!=='IDLE'){
+      const icons={LEFT:'←',RIGHT:'→',FORWARD:'↑',BACKWARD:'↓',COLLECT:'⬡'};
+      arrowEl.textContent=icons[rl.action]||'—';
+      arrowEl.className='action-arrow '+rl.action;
+      nameEl.textContent=rl.action;
+      const actionColors={LEFT:'var(--accent)',RIGHT:'var(--red)',FORWARD:'var(--green)',BACKWARD:'var(--amber)',COLLECT:'var(--purple)'};
+      nameEl.style.color=actionColors[rl.action]||'var(--text)';
+      const isPos=rl.reward>0;
+      rewEl.textContent=(isPos?'+':'')+rl.reward+' reward';
+      rewEl.className='action-reward '+(isPos?'pos':rl.reward<0?'neg':'');
+    }
+
+    // Grid state
+    document.getElementById('gridState').textContent=
+      rl.state!==undefined ? `${rl.state} — ${STATE_LABELS[rl.state]}` : '—';
+
+    // Q-table grid UI
+    this._updateQGrid(rl.state);
+
+    // YOLO detections panel
+    const visible=this.waste.filter(w=>!w.collected && Math.hypot(w.x-r.x,w.y-r.y)<r.sensorRange);
+    const detEl=document.getElementById('detList');
+    if(visible.length===0){
+      detEl.innerHTML='<div class="no-det">🔍 No objects in sensor range</div>';
+    } else {
+      detEl.innerHTML=visible.slice(0,5).map(w=>`
+        <div class="det-item">
+          <div class="det-dot" style="background:${w.type.color}"></div>
+          <div class="det-name">${w.type.name}</div>
+          <div class="det-conf">${(w.confScore*100).toFixed(0)}%</div>
+        </div>`).join('');
+    }
+
+    // Reward trend
+    if(this.agent.steps>0 && this.frame%8===0){
+      rewardHistory.push(rl.reward||0);
+      if(rewardHistory.length>30) rewardHistory.shift();
+      const rc=document.getElementById('rchart');
+      const maxAbs=Math.max(...rewardHistory.map(Math.abs),1);
+      rc.innerHTML=rewardHistory.map(v=>{
+        const h=Math.max(2,Math.abs(v)/maxAbs*50);
+        return `<div class="rbar ${v>=0?'pos':'neg'}" style="height:${h}px"></div>`;
+      }).join('');
+    }
+  }
+
+  _updateQGrid(activeState) {
+    const wrap=document.getElementById('qtableGrid');
+    const nearest=this._nearestInRange();
+    const targetState=nearest ? this.robot.getGridState(nearest,this.W,this.H) : -1;
+
+    const labels=['TL','TC','TR','ML','C','MR','BL','BC','BR'];
+    wrap.innerHTML=labels.map((lbl,i)=>{
+      let cls='qcell';
+      if(i===activeState) cls+=' active';
+      if(i===targetState && i!==activeState) cls+=' target-cell';
+      const qvals=this.agent.q[i];
+      const best=Math.max(...qvals).toFixed(1);
+      return `<div class="${cls}"><div>${lbl}</div><div class="qcell-num">Q:${best}</div></div>`;
+    }).join('');
+    // Add state 9
+    const c9=`qcell${activeState===9?' active':''}`;
+    wrap.innerHTML+=`<div class="${c9}" style="grid-column:1/-1"><div>No Trash (9)</div><div class="qcell-num">Q:${this.agent.q[9]?Math.max(...this.agent.q[9]).toFixed(1):'0.0'}</div></div>`;
+  }
+
+  isDone(){ return this.waste.every(w=>w.collected); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SIMULATION LOOP
+// ══════════════════════════════════════════════════════════════
+function loop(ts){
+  if(!running||paused) return;
+  if(!startTime) startTime=ts;
+  const elapsed=ts-startTime;
+
+  sim.update();
+  sim.draw();
+  sim.updateHUD(elapsed);
+
+  if(sim.isDone()){
+    running=false;
+    const s=Math.floor(elapsed/1000);
+    const tStr=Math.floor(s/60)+':'+(s%60+'').padStart(2,'0');
+    document.getElementById('doneText').textContent=
+      `All ${sim.totalWaste} waste items collected in ${tStr}! Coverage: ${sim.robot.coveragePct()}%  |  Total RL Reward: ${Math.round(sim.agent.totalReward)}`;
+    document.getElementById('doneOverlay').classList.remove('hidden');
+    addLog('🏁 Mission complete! All trash collected.','ok');
+    setButtons(false); return;
+  }
+  animId=requestAnimationFrame(loop);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════════════════════
+function startSim(){
+  if(sim&&running) return;
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('doneOverlay').classList.add('hidden');
+  sim=new Simulation(); running=true; paused=false; startTime=null;
+  rewardHistory=[];
+  setButtons(true);
+  addLog('▶ Simulation started  —  YOLOv8 + Q-Learning active','info');
+  addLog(`Waste objects: ${sim.totalWaste}  |  Sensor range: ${sim.robot.sensorRange}px`,'info');
+  animId=requestAnimationFrame(loop);
+}
+
+function pauseSim(){
+  if(!running) return;
+  paused=!paused;
+  document.getElementById('btnPause').textContent=paused?'▶ Resume':'⏸ Pause';
+  if(!paused) animId=requestAnimationFrame(loop);
+  addLog(paused?'⏸ Paused':'▶ Resumed');
+}
+
+function resetSim(){
+  running=false; paused=false;
+  cancelAnimationFrame(animId);
+  sim=null; startTime=null; rewardHistory=[];
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('doneOverlay').classList.add('hidden');
+  setButtons(false);
+  // Reset HUD
+  ['statCollected','statRemaining','statReward','statStep'].forEach(id=>
+    document.getElementById(id).textContent='0');
+  document.getElementById('statCoverage').textContent='0%';
+  document.getElementById('progressFill').style.width='0%';
+  document.getElementById('progressPct').textContent='0%';
+  document.getElementById('posXY').textContent='—';
+  document.getElementById('heading').textContent='—';
+  document.getElementById('statTime').textContent='0:00';
+  document.getElementById('statSpeed').textContent='—';
+  document.getElementById('detList').innerHTML='<div class="no-det">No objects detected</div>';
+  document.getElementById('rchart').innerHTML='';
+  const m=document.getElementById('modeLabel'); m.className='mode-badge mode-idle'; m.textContent='IDLE';
+  document.getElementById('actionArrow').className='action-arrow'; document.getElementById('actionArrow').textContent='💤';
+  document.getElementById('actionName').textContent='IDLE'; document.getElementById('actionName').style.color='var(--muted)';
+  document.getElementById('actionReward').textContent='—';
+  document.getElementById('gridState').textContent='—';
+  document.getElementById('qtableGrid').innerHTML='';
+  addLog('↺ System reset','warn');
+}
+
+function setButtons(active){
+  document.getElementById('btnStart').disabled=active;
+  document.getElementById('btnPause').disabled=!active;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════════════════════════
+function addLog(msg, type=''){
+  const box=document.getElementById('logBox');
+  const now=new Date();
+  const ts=now.toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const div=document.createElement('div');
+  div.className='le'+(type?' '+type:'');
+  div.textContent=`[${ts}] ${msg}`;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+  if(++logCount>150){box.removeChild(box.firstChild);logCount--;}
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WIRE UP
+// ══════════════════════════════════════════════════════════════
+document.getElementById('btnStart').addEventListener('click',startSim);
+document.getElementById('btnPause').addEventListener('click',pauseSim);
+document.getElementById('btnReset').addEventListener('click',resetSim);
+document.getElementById('btnAddWaste').addEventListener('click',()=>{
+  if(sim){sim.addWaste();addLog('＋ Trash item added','warn');}
+});
+
+// Draw initial water background
+(function initBg(){
+  const bg=new Water(canvas.width,canvas.height);
+  bg.draw(ctx);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(6,6,canvas.width-12,canvas.height-12);
+  ctx.strokeStyle='rgba(0,200,255,0.15)'; ctx.lineWidth=1.5;
+  ctx.setLineDash([8,6]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+})();
+
+addLog('System ready — YOLOv8 model loaded (best.pt)','info');
+addLog('Q-Learning agent initialized  α=0.1  γ=0.9  ε=0.2','info');
+addLog('Press ▶ START to begin simulation','info');
+</script>
+</body>
+</html>
